@@ -1,23 +1,34 @@
 #!/usr/bin/python
 import socket
-import time
+import sys, os, time
 import traceback
 import RPi.GPIO as GPIO
 import paho.mqtt.client as mqtt
-GPIO.setmode(GPIO.BOARD)
+try:
+   from ConfigParser import ConfigParser
+except:
+   from configparser import ConfigParser
 
-PASSWORD = 'NRD'
-NURDBOT = ('vinculum', 19107)
-MOSQUITTO = ('arbiter', 1883)
-DOORS = {13:'front_door'}
+GPIO.setmode(GPIO.BOARD)
+basepath =os.path.dirname(os.path.realpath(__file__))
+config = ConfigParser()
+configfile=basepath+os.sep+'config.cfg'
+if not os.path.exists(configfile):
+    configfile=basepath+os.sep+'config.cfg.example'
+config.read(configfile)
+
+PASSWORD = config.get('doorsensor','password')
+NURDBOT = (config.get('doorsensor','nurdbot_host'),config.get('doorsensor','nurdbot_port'))
+MOSQUITTO = (config.get('doorsensor','mqtt_host'),config.get('doorsensor','mqtt_port'))
+SENSORS = {13:'front_door'}
 
 mqttc = mqtt.Client()
 status = {}
 
 def callback(chan):
     global status
-    global DOORS
-    print(time.strftime('%H:%M:%S ')+str(DOORS[chan])+' called callback')
+    global SENSORS
+    print(time.strftime('%H:%M:%S ')+str(SENSORS[chan])+' called callback')
     new = (GPIO.input(chan) ==1)
     if new is not status[chan]:
         time.sleep(2)
@@ -25,16 +36,16 @@ def callback(chan):
         if new is not status[chan]:
             status[chan] = new
             send()
-            print(time.strftime('%H:%M:%S ')+DOORS[chan]+' ('+str(chan)+') is now '+str(status[chan]))
+            print(time.strftime('%H:%M:%S ')+SENSORS[chan]+' ('+str(chan)+') is now '+str(status[chan]))
 
 def send():
-    global DOORS
+    global SENSORS
     global status
     s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     sng = []
-    for door in DOORS:
+    for door in SENSORS:
         callback(door)
-        sng.append(DOORS[door]+':'+str(status[door]))
+        sng.append(SENSORS[door]+':'+str(status[door]))
     sng = PASSWORD+';'.join(sng)+'\n'
     try:
         s.connect(NURDBOT)
@@ -45,21 +56,21 @@ def send():
         s.close()
     try:
         mqttc.connect(*MOSQUITTO)
-        mqttc.publish('space/status_switch',status[DOORS.keys()[0]],qos=1,retain=True)
+        mqttc.publish('space/status_switch',status[SENSORS.keys()[0]],qos=1,retain=True)
         mqttc.disconnect()
     except:
         print(traceback.format_exc())
         print('MQTT Connection failure')
 
 
-for door in DOORS:
+for door in SENSORS:
     GPIO.setup(door, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     status[door] = (GPIO.input(door) == 1) 
 
 send()
-print('Current locked doors: '+str([DOORS[door]+':'+str(status[door]) for door in DOORS]))
+print('Current locked doors: '+str([SENSORS[door]+':'+str(status[door]) for door in SENSORS]))
 
-for door in DOORS:
+for door in SENSORS:
     GPIO.add_event_detect(door, GPIO.BOTH, callback=callback,bouncetime=800)
 
 while True:

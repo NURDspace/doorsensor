@@ -1,0 +1,6 @@
+[doorsensor]
+password=PASS
+nurdbot_host=nurdbot
+nurdbot_port=19107
+mqtt_host=mug
+mqtt_port=1883
