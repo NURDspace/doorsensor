@@ -26,6 +26,7 @@ mqttc = mqtt.Client()
 status = {}
 
 def callback(chan):
+    '''This callback functions primarily as a debouncer around the send() function.'''
     global status
     global SENSORS
     print(time.strftime('%H:%M:%S ')+str(SENSORS[chan])+' called callback')
@@ -39,6 +40,7 @@ def callback(chan):
             print(time.strftime('%H:%M:%S ')+SENSORS[chan]+' ('+str(chan)+') is now '+str(status[chan]))
 
 def send():
+    '''Get the word out to the various listening posts.'''
     global SENSORS
     global status
     s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
