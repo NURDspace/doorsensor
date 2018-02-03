@@ -59,7 +59,7 @@ def send():
         s.close()
     try:
         mqttc.connect(*MOSQUITTO)
-        mqttc.publish('space/status_switch',status[SENSORS.keys()[0]],qos=1,retain=True)
+        mqttc.publish('space/status_switch',payload=(1 if status[SENSORS.keys()[0]] else 0),qos=1,retain=True)
         mqttc.disconnect()
     except:
         print(traceback.format_exc())
