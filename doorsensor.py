@@ -18,8 +18,8 @@ if not os.path.exists(configfile):
 config.read(configfile)
 
 PASSWORD = config.get('doorsensor','password')
-NURDBOT = (config.get('doorsensor','nurdbot_host'),config.get('doorsensor','nurdbot_port'))
-MOSQUITTO = (config.get('doorsensor','mqtt_host'),config.get('doorsensor','mqtt_port'))
+NURDBOT = (config.get('doorsensor','nurdbot_host'),config.getint('doorsensor','nurdbot_port'))
+MOSQUITTO = (config.get('doorsensor','mqtt_host'),config.getint('doorsensor','mqtt_port'))
 SENSORS = {13:'front_door'}
 
 mqttc = mqtt.Client()
@@ -51,6 +51,7 @@ def send():
         s.connect(NURDBOT)
         s.sendall(sng)
     except:
+        print(traceback.format_exc())
         print('Connection failure')
     finally:
         s.close()
